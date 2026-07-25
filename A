@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Noticeboard — Campus Marketplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --ink:#1B2A4A;
+    --ink-soft:#3B4A6B;
+    --paper:#F7F4EC;
+    --card:#FFFDF8;
+    --mustard:#E8A93B;
+    --forest:#2F6B4F;
+    --rust:#C34A36;
+    --line:#D9D2C0;
+    --shadow: 0 1px 0 rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(27,42,74,0.06) 1px, transparent 0) 0 0/22px 22px,
+      var(--paper);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+  }
+  .display{ font-family:'Fraunces', serif; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  header{
+    padding:28px 24px 20px;
+    border-bottom:2px solid var(--ink);
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:14px;
+    max-width:1100px;
+    margin:0 auto;
+  }
+  .brand h1{
+    font-size:clamp(28px, 4vw, 40px);
+    margin:0;
+    font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  .brand .tagline{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:4px;
+    font-style:italic;
+    font-family:'Fraunces', serif;
+  }
+  .userbox{
+    font-size:13px;
+    text-align:right;
+    color:var(--ink-soft);
+  }
+  .userbox b{ color:var(--ink); }
+  .userbox button{
+    margin-top:6px;
+    background:none;
+    border:1px solid var(--ink);
+    color:var(--ink);
+    padding:5px 10px;
+    font-size:12px;
+    border-radius:3px;
+    cursor:pointer;
+    font-family:'Work Sans',sans-serif;
+  }
+  main{ max-width:1100px; margin:0 auto; padding:24px; }
+  .tabs{
+    display:flex;
+    gap:2px;
+    margin-bottom:20px;
+    border-bottom:1px solid var(--line);
+  }
+  .tab{
+    padding:10px 18px;
+    cursor:pointer;
+    font-weight:600;
+    font-size:14px;
+    color:var(--ink-soft);
+    border-bottom:3px solid transparent;
+    transition:all .15s;
+  }
+  .tab.active{ color:var(--ink); border-bottom-color:var(--mustard); }
+  .toolbar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:22px;
+    align-items:center;
+  }
+  select, input[type=text], input[type=number], input[type=email], textarea{
+    font-family:'Work Sans',sans-serif;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--ink);
+    padding:8px 10px;
+    border-radius:4px;
+    font-size:13px;
+  }
+  .search-input{ flex:1; min-width:160px; }
+  .post-btn{
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:10px 18px;
+    border-radius:4px;
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    margin-left:auto;
+    white-space:nowrap;
+  }
+  .post-btn:hover{ background:var(--ink-soft); }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
+    gap:18px;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:6px;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+    transition:transform .12s ease;
+  }
+  .card:hover{ transform:translateY(-3px); }
+  .card::before{
+    content:'';
+    position:absolute;
+    top:10px; left:10px;
+    width:8px; height:8px;
+    border-radius:50%;
+    background:var(--rust);
+    box-shadow:0 1px 2px rgba(0,0,0,0.3);
+    z-index:2;
+  }
+  .card-img{
+    height:140px;
+    background:#EFE9DA;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--ink-soft);
+    font-size:12px;
+    overflow:hidden;
+  }
+  .card-img img{ width:100%; height:100%; object-fit:cover; }
+  .card-tag{
+    position:absolute;
+    top:10px; right:10px;
+    background:var(--mustard);
+    color:var(--ink);
+    font-size:10px;
+    font-weight:700;
+    text-transform:uppercase;
+    padding:3px 7px;
+    border-radius:3px;
+    letter-spacing:.03em;
+    z-index:2;
+  }
+  .card-body{ padding:12px 14px 14px; }
+  .card-title{ font-weight:600; font-size:14.5px; margin:0 0 4px; }
+  .card-price{ font-family:'Fraunces',serif; font-weight:700; font-size:19px; color:var(--forest); }
+  .card-meta{ font-size:11.5px; color:var(--ink-soft); margin-top:6px; display:flex; justify-content:space-between; }
+  .card-actions{ margin-top:10px; display:flex; gap:6px; }
+  .wa-btn{
+    flex:1;
+    background:var(--forest);
+    color:#fff;
+    border:none;
+    padding:7px 8px;
+    border-radius:4px;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    text-align:center;
+    text-decoration:none;
+    display:block;
+  }
+  .own-actions button{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+    font-size:11px;
+    padding:6px 8px;
+    border-radius:4px;
+    cursor:pointer;
+  }
+  .sold-stamp{
+    position:absolute;
+    top:45%; left:50%;
+    transform:translate(-50%,-50%) rotate(-12deg);
+    border:3px solid var(--rust);
+    color:var(--rust);
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:22px;
+    padding:4px 14px;
+    border-radius:4px;
+    background:rgba(255,253,248,0.9);
+    z-index:3;
+    letter-spacing:.05em;
+  }
+  .empty{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--ink-soft);
+  }
+  .empty .display{ font-size:22px; color:var(--ink); margin-bottom:6px; }
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(27,42,74,0.45);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  .overlay.show{ display:flex; }
+  .modal{
+    background:var(--paper);
+    border:2px solid var(--ink);
+    border-radius:6px;
+    max-width:440px;
+    width:100%;
+    max-height:88vh;
+    overflow-y:auto;
+    padding:24px;
+  }
+  .modal h2{ font-family:'Fraunces',serif; margin:0 0 16px; font-size:22px; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:12px; font-weight:600; margin-bottom:4px; color:var(--ink-soft); }
+  .field select, .field input, .field textarea{ width:100%; }
+  .field textarea{ resize:vertical; min-height:60px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .modal-actions{ display:flex; gap:8px; margin-top:16px; }
+  .btn-primary{
+    background:var(--ink); color:var(--paper); border:none;
+    padding:10px 16px; border-radius:4px; font-weight:600; cursor:pointer; flex:1;
+  }
+  .btn-secondary{
+    background:none; border:1px solid var(--line); color:var(--ink-soft);
+    padding:10px 16px; border-radius:4px; cursor:pointer;
+  }
+  .hint{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+  .login-note{
+    font-size:12px; background:#FDF3DD; border:1px solid var(--mustard);
+    padding:10px 12px; border-radius:4px; margin-bottom:14px; color:var(--ink-soft);
+  }
+  .file-preview{ width:100%; height:100px; object-fit:cover; border-radius:4px; margin-top:6px; display:none; }
+  @media (max-width:480px){
+    .row2{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loginScreen" style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;">
+  <div style="max-width:360px; width:100%; text-align:center;">
+    <div style="font-size:34px; margin-bottom:6px;">📌</div>
+    <h1 class="display" style="font-size:30px; margin:0 0 6px;">The Noticeboard</h1>
+    <p style="color:var(--ink-soft); font-size:13.5px; margin-bottom:24px;">Buy, sell &amp; swap — only for your college.</p>
+    <div class="field" style="text-align:left;">
+      <label>College email</label>
+      <input type="email" id="loginEmail" placeholder="yourname@college.edu" style="width:100%;">
+      <div class="hint" id="emailHint">Demo mode: any email works. In the real version, only your college domain would be accepted.</div>
+    </div>
+    <div class="row2" style="margin-top:10px;">
+      <div class="field">
+        <label>Hostel / Block</label>
+        <input type="text" id="loginHostel" placeholder="e.g. Hostel 3">
+      </div>
+      <div class="field">
+        <label>Year</label>
+        <input type="text" id="loginYear" placeholder="e.g. 3rd yr">
+      </div>
+    </div>
+    <button class="btn-primary" style="width:100%; margin-top:10px;" onclick="login()">Enter the Noticeboard</button>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+  <header>
+    <div class="brand">
+      <h1 class="display">📌 The Noticeboard</h1>
+      <div class="tagline">Your college's marketplace, minus the WhatsApp scroll</div>
+    </div>
+    <div class="userbox">
+      Signed in as <b id="userNameDisplay"></b><br>
+      <span id="userMetaDisplay"></span>
+      <br><button onclick="logout()">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <div class="tab active" data-tab="marketplace" onclick="switchTab('marketplace')">Marketplace</div>
+      <div class="tab" data-tab="notes" onclick="switchTab('notes')">Notes &amp; PYQs</div>
+      <div class="tab" data-tab="mine" onclick="switchTab('mine')">My Listings</div>
+    </div>
+
+    <div id="tab-marketplace">
+      <div class="toolbar">
+        <input type="text" class="search-input" id="searchBox" placeholder="Search listings…" oninput="renderMarketplace()">
+        <select id="filterCategory" onchange="renderMarketplace()">
+          <option value="">All categories</option>
+          <option>Books</option><option>Electronics</option><option>Furniture</option>
+          <option>Cycles</option><option>Room/Subletting</option><option>Clothing</option><option>Misc</option>
+        </select>
+        <select id="filterHostel" onchange="renderMarketplace()">
+          <option value="">All hostels</option>
+        </select>
+        <select id="sortBy" onchange="renderMarketplace()">
+          <option value="new">Newest first</option>
+          <option value="low">Price: low to high</option>
+          <option value="high">Price: high to low</option>
+        </select>
+        <button class="post-btn" onclick="openPostModal('item')">+ Post a listing</button>
+      </div>
+      <div class="grid" id="marketplaceGrid"></div>
+    </div>
+
+    <div id="tab-notes" style="display:none;">
+      <div class="toolbar">
+        <input type="text" class="search-input" id="notesSearch" placeholder="Search by subject…" oninput="renderNotes()">
+        <select id="filterSemester" onchange="renderNotes()">
+          <option value="">All semesters</option>
+        </select>
+        <button class="post-btn" onclick="openPostModal('note')">+ Share notes</button>
+      </div>
+      <div class="grid" id="notesGrid"></div>
+    </div>
+
+    <div id="tab-mine" style="display:none;">
+      <div class="grid" id="mineGrid"></div>
+    </div>
+  </main>
+</div>
+
+<div class="overlay" id="postOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Post a listing</h2>
+    <div id="itemFields">
+      <div class="field">
+        <label>Photo</label>
+        <input type="file" id="postImage" accept="image/*" onchange="previewImage()">
+        <div class="hint">If the file picker doesn't open (common in in-app previews), paste an image link below instead.</div>
+        <input type="text" id="postImageUrl" placeholder="https://…image link" oninput="previewImageUrl()" style="margin-top:6px; width:100%;">
+        <img id="imgPreview" class="file-preview">
+      </div>
+      <div class="field"><label>Title</label><input type="text" id="postTitle" placeholder="e.g. Grant's Anatomy Atlas, 2nd edition"></div>
+      <div class="row2">
+        <div class="field"><label>Price (₹)</label><input type="number" id="postPrice" placeholder="500"></div>
+        <div class="field"><label>Category</label>
+          <select id="postCategory">
+            <option>Books</option><option>Electronics</option><option>Furniture</option>
+            <option>Cycles</option><option>Room/Subletting</option><option>Clothing</option><option>Misc</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Hostel/Block</label><input type="text" id="postHostel" placeholder="e.g. Hostel 3"></div>
+        <div class="field"><label>Condition</label>
+          <select id="postCondition"><option>New</option><option>Like new</option><option>Used</option><option>Worn</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Description (optional)</label><textarea id="postDesc" placeholder="Any details buyers should know…"></textarea></div>
+    </div>
+
+    <div id="noteFields" style="display:none;">
+      <div class="field"><label>Subject</label><input type="text" id="notesSubject" placeholder="e.g. Pharmacology"></div>
+      <div class="row2">
+        <div class="field"><label>Semester/Year</label><input type="text" id="notesSem" placeholder="e.g. 3rd sem"></div>
+        <div class="field"><label>Type</label>
+          <select id="notesType"><option>Notes</option><option>PYQs</option><option>Both</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Free or trade?</label>
+        <select id="notesFree"><option>Free</option><option>Trade for notes</option></select>
+      </div>
+      <div class="field"><label>File note</label><div class="hint">Demo doesn't upload real files — describe what you're sharing.</div>
+        <textarea id="notesDesc" placeholder="e.g. Handwritten notes + last 5 years PYQs, scanned PDF"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closePostModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitPost()">Post</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://xabcyngjslxavlmfpxma.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_T77DjGsTh923DYx5K0clzA_1dr-rOis';
+
+let sb = null;
+let configOk = SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY.length > 20;
+if (configOk) {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+let currentUser = null;
+let postMode = 'item';
+let pendingImage = null;
+let listings = [];
+
+function rowToListing(r){
+  return {
+    id: r.id, kind: r.kind, title: r.title, price: r.price, category: r.category,
+    hostel: r.hostel, condition: r.condition, desc: r.description, img: r.image_url,
+    subject: r.subject, sem: r.semester, type: r.note_type, free: r.free_or_trade,
+    downloads: r.downloads, seller: r.seller_name, sellerEmail: r.seller_email,
+    sellerHostel: r.seller_hostel, sold: r.sold, date: new Date(r.created_at).getTime()
+  };
+}
+
+async function loadListings(){
+  if(!configOk){ showConfigWarning(); return; }
+  const {data, error} = await sb.from('listings').select('*').order('created_at', {ascending:false});
+  if(error){ console.error(error); alert('Could not load listings: '+error.message); return; }
+  listings = data.map(rowToListing);
+  populateFilterOptions();
+  renderMarketplace(); renderNotes(); renderMine();
+}
+
+function showConfigWarning(){
+  document.getElementById('marketplaceGrid').innerHTML =
+    emptyState('Not connected to a database yet',
+    'Open this file and paste your Supabase URL + anon key at the top of the &lt;script&gt; tag.');
+}
+
+function login(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const hostel = document.getElementById('loginHostel').value.trim() || 'Unlisted';
+  const year = document.getElementById('loginYear').value.trim();
+  if(!email){ alert('Enter your college email to continue.'); return; }
+  const name = email.split('@')[0];
+  currentUser = {name: name.charAt(0).toUpperCase()+name.slice(1), email, hostel, year};
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('userNameDisplay').textContent = currentUser.name;
+  document.getElementById('userMetaDisplay').textContent = currentUser.hostel + (currentUser.year? ' · '+currentUser.year:'');
+  loadListings();
+}
+function logout(){ currentUser=null; document.getElementById('loginScreen').style.display='flex'; document.getElementById('app').style.display='none'; }
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
+  ['marketplace','notes','mine'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display = (t===tab)?'block':'none';
+  });
+  if(tab==='mine') renderMine();
+}
+
+function populateFilterOptions(){
+  const hostels = [...new Set(listings.filter(l=>l.kind==='item').map(l=>l.hostel))];
+  const sel = document.getElementById('filterHostel');
+  sel.innerHTML = '<option value="">All hostels</option>' + hostels.map(h=>`<option>${h}</option>`).join('');
+  const sems = [...new Set(listings.filter(l=>l.kind==='note').map(l=>l.sem))];
+  const semSel = document.getElementById('filterSemester');
+  semSel.innerHTML = '<option value="">All semesters</option>' + sems.map(s=>`<option>${s}</option>`).join('');
+}
+
+function timeAgo(ts){
+  const mins = Math.floor((Date.now()-ts)/60000);
+  if(mins<60) return mins+'m ago';
+  const hrs = Math.floor(mins/60);
+  if(hrs<24) return hrs+'h ago';
+  return Math.floor(hrs/24)+'d ago';
+}
+
+function waLink(listing){
+  const msg = encodeURIComponent(`Hi ${listing.seller}, is "${listing.title}" still available?`);
+  return `https://wa.me/?text=${msg}`;
+}
+
+function itemCard(l){
+  const soldStamp = l.sold ? `<div class="sold-stamp">SOLD</div>` : '';
+  const imgHtml = l.img ? `<img src="${l.img}">` : '📦';
+  const isMine = currentUser && l.sellerEmail===currentUser.email;
+  return `<div class="card">
+    ${soldStamp}
+    <div class="card-tag">${l.category}</div>
+    <div class="card-img">${imgHtml}</div>
+    <div class="card-body">
+      <p class="card-title">${l.title}</p>
+      <div class="card-price">₹${l.price}</div>
+      <div class="card-meta"><span>${l.hostel}</span><span>${timeAgo(l.date)}</span></div>
+      <div class="card-actions">
+        ${isMine
+          ? `<div class="own-actions" style="display:flex; gap:6px; width:100%;">
+               <button onclick="toggleSold(${l.id})">${l.sold?'Mark available':'Mark sold'}</button>
+               <button onclick="deleteListing(${l.id})">Delete</button>
+             </div>`
+          : `<a class="wa-btn" href="${waLink(l)}" target="_blank">Contact on WhatsApp</a>`
+        }
+      </div>
+    </div>
+  </div>`;
+}
+
+function noteCard(n){
+  return `<div class="card">
+    <div class="card-tag" style="background:var(--forest); color:#fff;">${n.type}</div>
+    <div class="card-img">📝</div>
+    <div class="card-body">
+      <p class="card-title">${n.title}</p>
+      <div style="font-size:12px; color:var(--ink-soft);">${n.subject} · ${n.sem}</div>
+      <div class="card-meta"><span>${n.free}</span><span>${n.downloads||0} downloads</span></div>
+      <div class="card-actions">
+        <a class="wa-btn" href="${waLink({title:n.title, seller:n.seller})}" target="_blank">Ask ${n.seller}</a>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderMarketplace(){
+  const cat = document.getElementById('filterCategory').value;
+  const hostel = document.getElementById('filterHostel').value;
+  const sort = document.getElementById('sortBy').value;
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  let items = listings.filter(l=>l.kind==='item');
+  if(cat) items = items.filter(l=>l.category===cat);
+  if(hostel) items = items.filter(l=>l.hostel===hostel);
+  if(q) items = items.filter(l=>l.title.toLowerCase().includes(q) || (l.desc||'').toLowerCase().includes(q));
+  if(sort==='new') items.sort((a,b)=>b.date-a.date);
+  if(sort==='low') items.sort((a,b)=>a.price-b.price);
+  if(sort==='high') items.sort((a,b)=>b.price-a.price);
+  const grid = document.getElementById('marketplaceGrid');
+  grid.innerHTML = items.length ? items.map(itemCard).join('') : emptyState('No listings match yet', 'Try a different filter, or be the first to post something in this category.');
+}
+
+function renderNotes(){
+  const q = document.getElementById('notesSearch').value.toLowerCase();
+  const sem = document.getElementById('filterSemester').value;
+  let notes = listings.filter(l=>l.kind==='note');
+  if(sem) notes = notes.filter(n=>n.sem===sem);
+  if(q) notes = notes.filter(n=>n.subject.toLowerCase().includes(q) || n.title.toLowerCase().includes(q));
+  notes.sort((a,b)=>b.date-a.date);
+  const grid = document.getElementById('notesGrid');
+  grid.innerHTML = notes.length ? notes.map(noteCard).join('') : emptyState('No notes here yet', 'Share the first set for this subject.');
+}
+
+function renderMine(){
+  if(!currentUser) return;
+  const mine = listings.filter(l=>l.sellerEmail===currentUser.email);
+  const grid = document.getElementById('mineGrid');
+  grid.innerHTML = mine.length ? mine.map(l=>l.kind==='item'?itemCard(l):noteCard(l)).join('') : emptyState("You haven't posted anything yet", 'Tap "+ Post a listing" to put your first item up.');
+}
+
+function emptyState(title, sub){
+  return `<div class="empty" style="grid-column:1/-1;"><div class="display">${title}</div><div>${sub}</div></div>`;
+}
+
+async function toggleSold(id){
+  const l = listings.find(x=>x.id===id);
+  const {error} = await sb.from('listings').update({sold: !l.sold}).eq('id', id);
+  if(error){ alert('Could not update: '+error.message); return; }
+  await loadListings();
+}
+async function deleteListing(id){
+  if(!confirm('Delete this listing?')) return;
+  const {error} = await sb.from('listings').delete().eq('id', id);
+  if(error){ alert('Could not delete: '+error.message); return; }
+  await loadListings();
+}
+
+function openPostModal(mode){
+  postMode = mode;
+  document.getElementById('itemFields').style.display = mode==='item' ? 'block':'none';
+  document.getElementById('noteFields').style.display = mode==='note' ? 'block':'none';
+  document.getElementById('modalTitle').textContent = mode==='item' ? 'Post a listing' : 'Share notes / PYQs';
+  document.getElementById('postOverlay').classList.add('show');
+}
+function closePostModal(){
+  document.getElementById('postOverlay').classList.remove('show');
+  pendingImage = null;
+  document.getElementById('imgPreview').style.display='none';
+  document.getElementById('postImageUrl').value='';
+  document.getElementById('postImage').value='';
+}
+function previewImage(){
+  const file = document.getElementById('postImage').files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    pendingImage = e.target.result;
+    const img = document.getElementById('imgPreview');
+    img.src = pendingImage;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+function previewImageUrl(){
+  const url = document.getElementById('postImageUrl').value.trim();
+  if(!url) return;
+  pendingImage = url;
+  const img = document.getElementById('imgPreview');
+  img.src = url;
+  img.style.display = 'block';
+}
+
+async function submitPost(){
+  let row;
+  if(postMode==='item'){
+    const title = document.getElementById('postTitle').value.trim();
+    const price = document.getElementById('postPrice').value;
+    if(!title || !price){ alert('Add at least a title and price.'); return; }
+    row = {
+      kind:'item', title, price:Number(price),
+      category: document.getElementById('postCategory').value,
+      hostel: document.getElementById('postHostel').value.trim() || currentUser.hostel,
+      condition: document.getElementById('postCondition').value,
+      description: document.getElementById('postDesc').value.trim(),
+      image_url: pendingImage || '',
+      seller_name: currentUser.name, seller_email: currentUser.email, seller_hostel: currentUser.hostel,
+      sold:false
+    };
+  } else {
+    const subject = document.getElementById('notesSubject').value.trim();
+    if(!subject){ alert('Add a subject name.'); return; }
+    row = {
+      kind:'note',
+      title: subject + ' — ' + document.getElementById('notesType').value,
+      subject, semester: document.getElementById('notesSem').value.trim(),
+      note_type: document.getElementById('notesType').value,
+      free_or_trade: document.getElementById('notesFree').value,
+      description: document.getElementById('notesDesc').value.trim(),
+      seller_name: currentUser.name, seller_email: currentUser.email,
+      downloads: 0
+    };
+  }
+  const {error} = await sb.from('listings').insert(row);
+  if(error){ alert('Could not post: '+error.message); return; }
+
+  document.getElementById('postTitle').value=''; document.getElementById('postPrice').value='';
+  document.getElementById('postDesc').value=''; document.getElementById('postHostel').value='';
+  document.getElementById('notesSubject').value=''; document.getElementById('notesSem').value='';
+  document.getElementById('notesDesc').value='';
+  closePostModal();
+  await loadListings();
+}
+</script>
+</body>
+</html>
